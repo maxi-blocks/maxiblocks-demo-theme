@@ -1,0 +1,29 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/theme.json",
+    "version": 2,
+    "settings": {
+        "appearanceTools": true,
+        "color": {
+            "defaultDuotone": false,
+            "defaultPalette": false,
+            "defaultGradients": false
+        },
+        "layout": {
+            "contentSize": "620px",
+            "wideSize": "1280px"
+        },
+        "useRootPaddingAwareAlignments": true
+    },
+    "templateParts": [
+        {
+            "area": "header",
+            "name": "header",
+            "title": "Header"
+        },
+        {
+            "area": "footer",
+            "name": "footer",
+            "title": "Footer"
+        }
+    ]
+}
