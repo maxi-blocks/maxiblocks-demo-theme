@@ -73,9 +73,9 @@ if (!class_exists('MaxiBlocks_Library_Core')) :
             * Make theme available for translation.
             * Translations can be filed in the /languages/ directory.
             * If you're building a theme based on MaxiBlocks Library, use a find and replace
-            * to change 'maxiblocks-library' to the name of your theme in all the template files.
+            * to change 'maxiblocks-demo-theme' to the name of your theme in all the template files.
             */
-            load_theme_textdomain('maxiblocks-library', get_template_directory() . '/languages');
+            load_theme_textdomain('maxiblocks-demo-theme', get_template_directory() . '/languages');
 
             /*
             * Let WordPress manage the document title.
@@ -120,15 +120,15 @@ if (!class_exists('MaxiBlocks_Library_Core')) :
          */
         public function maxiblocks_library_scripts()
         {
-            wp_enqueue_style('maxiblocks-library-style', get_stylesheet_uri(), array(), THEME_VERSION);
-            wp_style_add_data('maxiblocks-library-style', 'rtl', 'replace');
+            wp_enqueue_style('maxiblocks-demo-theme-style', get_stylesheet_uri(), array(), THEME_VERSION);
+            wp_style_add_data('maxiblocks-demo-theme-style', 'rtl', 'replace');
 
-            wp_enqueue_script('maxiblocks-library-navigation', get_template_directory_uri() . '/js/navigation.js', array(), THEME_VERSION, true);
+            wp_enqueue_script('maxiblocks-demo-theme-navigation', get_template_directory_uri() . '/js/navigation.js', array(), THEME_VERSION, true);
         }
 
         public function maxiblocks_library_admin_scripts()
         {
-            wp_enqueue_script('maxiblocks-library-admin', get_template_directory_uri() . '/js/admin.js', array(), THEME_VERSION, true);
+            wp_enqueue_script('maxiblocks-demo-theme-admin', get_template_directory_uri() . '/js/admin.js', array(), THEME_VERSION, true);
         }
     }
 
