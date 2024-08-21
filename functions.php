@@ -23,7 +23,7 @@ function patterns_custom_taxonomies()
       'show_ui'      => true,
       'show_admin_column' => 'true',
       'show_in_quick_edit' => true,
-  
+
       // This array of options controls the labels displayed in the WordPress Admin UI
       'labels' => array(
         'name' => _x('Light or Dark', 'taxonomy general name'),
@@ -45,7 +45,7 @@ function patterns_custom_taxonomies()
         'hierarchical' => true, // This will allow URL's like "/locations/boston/cambridge/"
       ),
     ));
-    
+
     register_taxonomy('cost', 'post', array(
         // Hierarchical taxonomy (like categories)
         'hierarchical' => false,
@@ -78,7 +78,54 @@ function patterns_custom_taxonomies()
             'show_in_quick_edit' => true,
         ),
     ));
+
+    $labels = array(
+        'name'              => 'Pattern Bases',
+        'singular_name'     => 'Pattern Base',
+        'search_items'      => 'Search Pattern Bases',
+        'all_items' => __('All Bases'),
+        'parent_item' => __('Parent Base'),
+        'parent_item_colon' => __('Parent Base:'),
+        'edit_item' => __('Edit Base'),
+        'update_item' => __('Update Base'),
+        'add_new_item' => __('Add New Base'),
+        'new_item_name' => __('New Base Name'),
+        'menu_name' => __('Bases'),
+    );
+
+    $args = array(
+        'labels'            => $labels,
+        'hierarchical'      => true,
+        'public'            => true,
+        'show_ui'           => true,
+        'show_admin_column' => true,
+        'query_var'         => true,
+        'rewrite'           => array( 'slug' => 'pattern-base' ),
+    );
+
+    register_taxonomy('pattern_base', array( 'post' ), $args);
 }
+
+// Modify the permalink structure for pattern posts
+error_log('functions.php loaded');
+function custom_pattern_post_link($permalink, $post)
+{
+    error_log('custom_pattern_post_link');
+    error_log($permalink);
+    if ('post' === $post->post_type && 'publish' === $post->post_status) {
+        error_log('post type and status match');
+        $terms = wp_get_object_terms($post->ID, 'pattern_base');
+        if (!empty($terms)) {
+            error_log('terms are not empty');
+            $pattern_base_slug = $terms[0]->slug;
+            error_log($pattern_base_slug);
+            $permalink = str_replace('/index.php/', '/index.php/' . $pattern_base_slug . '/', $permalink);
+            error_log($permalink);
+        }
+    }
+    return $permalink;
+}
+//add_filter('post_link', 'custom_pattern_post_link', 10, 2);
 
 function cloud_restrict_manage_posts()
 {
@@ -125,9 +172,9 @@ function link_to_related_meta_box_callback($post)
     $outline = '<label for="link_to_related">'. esc_html__('The ID of related pattern with the opposite tone - light or dark', 'text-domain') .'</label>';
     $link_to_related =  get_post_meta($post->ID, 'link_to_related', true);
     wp_nonce_field('save_link_to_related', 'link_to_related_nonce');
-    
+
     $outline .= '<input type="text" name="link_to_related" id="link_to_related" class="link_to_related" value="'. esc_attr($link_to_related) .'"/>';
- 
+
     echo $outline;
 }
 
@@ -137,9 +184,9 @@ function maxi_version_meta_box_callback($post)
     $outline = '<label for="maxi_version">'. esc_html__('Maxi plugin version the item was created in', 'text-domain') .'</label>';
     $maxi_version =  get_post_meta($post->ID, 'maxi_version', true);
     wp_nonce_field('save_maxi_version', 'maxi_version_nonce');
-    
+
     $outline .= '<input type="text" name="maxi_version" id="maxi_version" class="maxi_version" value="'. esc_attr($maxi_version) .'"/>';
- 
+
     echo $outline;
 }
 
@@ -210,7 +257,7 @@ add_action('init', 'maxi_register_post_meta_maxi_version');
 function maxi_register_post_meta_maxi_version()
 {
     $post_type = 'post';
-    
+
     if (! function_exists('get_plugin_data')) {
         require_once(ABSPATH . 'wp-admin/includes/plugin.php');
     }
@@ -280,3 +327,19 @@ if (is_admin()) {
     }
     add_filter('wp_get_attachment_url', 'rewrite_image_url');
 }
+
+function custom_rewrite_rules()
+{
+    add_rewrite_rule(
+        '^wordpress-patterns/([^/]+)/([^/]+)/([^/]+)/?$',
+        'index.php?taxonomy=wordpress-patterns&term=$1&taxonomy=$2&term=$3',
+        'top'
+    );
+
+    add_rewrite_rule(
+        '^wordpress-patterns/([^/]+)/([^/]+)/([^/]+)/([^/]+)/?$',
+        'index.php?name=$4',
+        'top'
+    );
+}
+add_action('init', 'custom_rewrite_rules');
