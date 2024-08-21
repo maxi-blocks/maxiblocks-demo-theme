@@ -932,3 +932,35 @@ html {
 		bottom: -50px !important;
 	}
 }
+
+
+/* Standard scrollbars when hide-scrollbar class is present */
+@media (max-width: 1199px) {
+	.hide-scrollbar {
+		-ms-overflow-style: none;
+		/* For Internet Explorer and Edge */
+		scrollbar-width: none;
+		/* For Firefox */
+	}
+
+	.hide-scrollbar::-webkit-scrollbar {
+		width: 0 !important;
+		/* For WebKit browsers */
+	}
+}
+
+/* For mobile devices that respect the `hover` media feature */
+@media (hover: none) and (pointer: coarse),
+(max-width: 1199px) {
+	.hide-scrollbar {
+		-ms-overflow-style: none;
+		/* For Internet Explorer and Edge */
+		scrollbar-width: none;
+		/* For Firefox */
+	}
+
+	.hide-scrollbar::-webkit-scrollbar {
+		width: 0 !important;
+		/* For WebKit browsers */
+	}
+}
