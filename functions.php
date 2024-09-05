@@ -642,33 +642,27 @@ function save_custom_fields_for_taxonomy($term_id, $tt_id)
     }
 }
 
-function register_custom_taxonomy_fields_block()
-{
-    register_block_type('maxiblocks-demo-theme/custom-taxonomy-fields', array(
-        'render_callback' => 'render_custom_taxonomy_fields_block',
-        'attributes' => array(
-            'field' => array(
-                'type' => 'string',
-                'default' => 'seo_header',
-            ),
-        ),
-    ));
-}
-add_action('init', 'register_custom_taxonomy_fields_block');
-
-function render_custom_taxonomy_fields_block($attributes)
+// Add shortcodes for custom taxonomy fields
+function seo_header_shortcode()
 {
     $term = get_queried_object();
     if (!$term || !isset($term->term_id)) {
         return '';
     }
 
-    $field = $attributes['field'];
-    $value = get_term_meta($term->term_id, $field, true);
+    $seo_header = get_term_meta($term->term_id, 'seo_header', true);
+    return '<div class="custom-taxonomy-field seo-header">' . wp_kses_post($seo_header) . '</div>';
+}
+add_shortcode('seo_header', 'seo_header_shortcode');
 
-    if (empty($value)) {
+function subheader_shortcode()
+{
+    $term = get_queried_object();
+    if (!$term || !isset($term->term_id)) {
         return '';
     }
 
-    return '<div class="custom-taxonomy-field ' . esc_attr($field) . '">' . wp_kses_post($value) . '</div>';
+    $subheader = get_term_meta($term->term_id, 'subheader', true);
+    return '<div class="custom-taxonomy-field subheader">' . wp_kses_post($subheader) . '</div>';
 }
+add_shortcode('subheader', 'subheader_shortcode');
