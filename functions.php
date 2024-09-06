@@ -667,15 +667,100 @@ function subheader_shortcode()
 }
 add_shortcode('subheader', 'subheader_shortcode');
 
-function add_wysiwyg_to_tag_fields()
+
+// Add WYSIWYG Editor to Tag Description
+function add_wysiwyg_to_tag_description()
+{
+    if (! function_exists('use_block_editor_for_post_type')) {
+        return;
+    }
+
+    if (use_block_editor_for_post_type('post')) {
+        add_action('post_tag_edit_form_fields', 'render_wysiwyg_editor_for_tag', 10, 2);
+        add_action('admin_footer', 'hide_default_description_field_tag');
+    }
+}
+add_action('admin_init', 'add_wysiwyg_to_tag_description');
+
+function render_wysiwyg_editor_for_tag($term, $taxonomy)
+{
+    wp_enqueue_editor();
+    ?>
+    <tr class="form-field tag-description-wrap">
+        <th scope="row" valign="top"><label for="description"><?php _e('Description', 'maxiblocks-demo-theme'); ?></label></th>
+        <td>
+            <?php
+            $settings = array(
+                'textarea_name' => 'custom_description',
+                'textarea_rows' => 10,
+                'editor_height' => 300,
+            );
+    wp_editor(html_entity_decode($term->description), 'custom_description', $settings);
+    ?>
+            <p class="description"><?php _e('The description is not prominent by default; however, some themes may show it.', 'maxiblocks-demo-theme'); ?></p>
+        </td>
+    </tr>
+    <?php
+}
+
+// Hide the default description field
+function hide_default_description_field_tag()
+{
+    ?>
+    <style>
+       body.taxonomy-post_tag .tag-description-wrap:not(:has(#custom_description)),
+	   body.taxonomy-post_tag .tag-description-wrap:last-child,
+	   body.taxonomy-post_tag .term-description-wrap {
+            display: none !important;
+        }
+		body.taxonomy-post_tag form#edittag {
+			max-width: 100%;
+		}
+    </style>
+    <?php
+}
+
+// Save the WYSIWYG Editor Content
+function save_wysiwyg_editor_content_tag($term_id)
+{
+    if (isset($_POST['custom_description'])) {
+
+        $description = wp_kses($_POST['custom_description'], custom_allowed_html());
+        add_filter('pre_insert_term', function ($term, $taxonomy) use ($description) {
+            if ($taxonomy === 'post_tag') {
+                $term['description'] = $description;
+            }
+            return $term;
+        }, 10, 2);
+    }
+}
+add_action('edited_post_tag', 'save_wysiwyg_editor_content_tag');
+
+// Update tag description in database directly
+function update_tag_description_tag($term_id, $tt_id, $taxonomy)
+{
+    if ($taxonomy === 'post_tag' && isset($_POST['custom_description'])) {
+        global $wpdb;
+        $description = wp_kses($_POST['custom_description'], custom_allowed_html());
+        $wpdb->update(
+            $wpdb->term_tag,
+            array('description' => $description),
+            array('term_id' => $term_id, 'taxonomy' => $taxonomy)
+        );
+    }
+}
+add_action('edited_term', 'update_tag_description_tag', 10, 3);
+
+function add_custom_fields_to_tag()
 {
     if (!function_exists('use_block_editor_for_post_type')) {
         return;
     }
 
     if (use_block_editor_for_post_type('post')) {
-        add_action('post_tag_edit_form_fields', 'render_wysiwyg_editors_for_tag', 10, 2);
-        add_action('edited_post_tag', 'save_wysiwyg_editors_content', 10, 2);
+        add_action('post_tag_edit_form_fields', 'render_custom_fields_for_tag', 10, 2);
+        add_action('edited_post_tag', 'save_custom_fields_for_tag', 10, 2);
+        add_action('admin_footer', 'hide_default_description_field_tag');
 
         // Register meta fields for REST API
         register_term_meta('post_tag', 'seo_header', array(
@@ -690,9 +775,9 @@ function add_wysiwyg_to_tag_fields()
         ));
     }
 }
-add_action('admin_init', 'add_wysiwyg_to_tag_fields');
+add_action('admin_init', 'add_custom_fields_to_tag');
 
-function render_wysiwyg_editors_for_tag($term, $taxonomy)
+function render_custom_fields_for_tag($term, $taxonomy)
 {
     wp_enqueue_editor();
     $seo_header = get_term_meta($term->term_id, 'seo_header', true);
@@ -709,6 +794,7 @@ function render_wysiwyg_editors_for_tag($term, $taxonomy)
             );
     wp_editor(html_entity_decode($seo_header), 'seo_header', $seo_header_settings);
     ?>
+            <p class="description"><?php _e('Enter a SEO Header for this term.', 'maxiblocks-demo-theme'); ?></p>
         </td>
     </tr>
     <tr class="form-field">
@@ -722,17 +808,27 @@ function render_wysiwyg_editors_for_tag($term, $taxonomy)
     );
     wp_editor(html_entity_decode($subheader), 'subheader', $subheader_settings);
     ?>
+            <p class="description"><?php _e('Enter a subheader for this term.', 'maxiblocks-demo-theme'); ?></p>
         </td>
     </tr>
     <?php
 }
 
-function save_wysiwyg_editors_content($term_id, $tt_id)
+function save_custom_fields_for_tag($term_id, $tt_id)
 {
     if (isset($_POST['seo_header'])) {
         update_term_meta($term_id, 'seo_header', wp_kses_post($_POST['seo_header']));
     }
     if (isset($_POST['subheader'])) {
         update_term_meta($term_id, 'subheader', wp_kses_post($_POST['subheader']));
+    }
+    if (isset($_POST['custom_description'])) {
+        $description = wp_kses($_POST['custom_description'], custom_allowed_html());
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->term_taxonomy,
+            array('description' => $description),
+            array('term_id' => $term_id, 'taxonomy' => 'post_tag')
+        );
     }
 }
