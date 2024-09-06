@@ -666,3 +666,73 @@ function subheader_shortcode()
     return '<div class="custom-taxonomy-field subheader">' . wp_kses_post($subheader) . '</div>';
 }
 add_shortcode('subheader', 'subheader_shortcode');
+
+function add_wysiwyg_to_tag_fields()
+{
+    if (!function_exists('use_block_editor_for_post_type')) {
+        return;
+    }
+
+    if (use_block_editor_for_post_type('post')) {
+        add_action('post_tag_edit_form_fields', 'render_wysiwyg_editors_for_tag', 10, 2);
+        add_action('edited_post_tag', 'save_wysiwyg_editors_content', 10, 2);
+
+        // Register meta fields for REST API
+        register_term_meta('post_tag', 'seo_header', array(
+            'show_in_rest' => true,
+            'single' => true,
+            'type' => 'string',
+        ));
+        register_term_meta('post_tag', 'subheader', array(
+            'show_in_rest' => true,
+            'single' => true,
+            'type' => 'string',
+        ));
+    }
+}
+add_action('admin_init', 'add_wysiwyg_to_tag_fields');
+
+function render_wysiwyg_editors_for_tag($term, $taxonomy)
+{
+    wp_enqueue_editor();
+    $seo_header = get_term_meta($term->term_id, 'seo_header', true);
+    $subheader = get_term_meta($term->term_id, 'subheader', true);
+    ?>
+    <tr class="form-field">
+        <th scope="row"><label for="seo_header"><?php _e('SEO Header', 'maxiblocks-demo-theme'); ?></label></th>
+        <td>
+            <?php
+            $seo_header_settings = array(
+                'textarea_name' => 'seo_header',
+                'textarea_rows' => 5,
+                'editor_height' => 150,
+            );
+    wp_editor(html_entity_decode($seo_header), 'seo_header', $seo_header_settings);
+    ?>
+        </td>
+    </tr>
+    <tr class="form-field">
+        <th scope="row"><label for="subheader"><?php _e('Subheader', 'maxiblocks-demo-theme'); ?></label></th>
+        <td>
+            <?php
+    $subheader_settings = array(
+        'textarea_name' => 'subheader',
+        'textarea_rows' => 5,
+        'editor_height' => 150,
+    );
+    wp_editor(html_entity_decode($subheader), 'subheader', $subheader_settings);
+    ?>
+        </td>
+    </tr>
+    <?php
+}
+
+function save_wysiwyg_editors_content($term_id, $tt_id)
+{
+    if (isset($_POST['seo_header'])) {
+        update_term_meta($term_id, 'seo_header', wp_kses_post($_POST['seo_header']));
+    }
+    if (isset($_POST['subheader'])) {
+        update_term_meta($term_id, 'subheader', wp_kses_post($_POST['subheader']));
+    }
+}
