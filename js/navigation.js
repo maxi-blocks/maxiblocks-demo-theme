@@ -42,7 +42,7 @@
     }
   });
 
-  // Remove the .toggled class and set aria-expanded to false when the user clicks outside the navigation.
+  // Remove the .toggled class and set aria-expanded to false when user clicks outside
   document.addEventListener('click', (event) => {
     const isClickInside = siteNavigation.contains(event.target);
 
@@ -113,7 +113,7 @@ const preventDefaultClick = function (event) {
 // Function to disable link clicks based on current URL and href attribute
 function disableLinksIfPatternInURLorHref() {
   // Disable clicks based on current URL
-  if (window.location.href.includes('block-pattern')) {
+  if (window.location.href.includes('block-pattern') && !window.location.href.includes('/wordpress/') && !window.location.href.includes('/tag/')) {
     // Selector for links with specified classes inside 'maxi-column-block' divs
     const classSelector = '.maxi-column-block .maxi-link-wrapper, '
             + '.maxi-column-block .maxi-components-button, '
@@ -135,8 +135,8 @@ function disableLinksIfPatternInURLorHref() {
   // Iterate through each link and disable click if href contains 'posts-for-patterns'
   allLinks.forEach((link) => {
     if (
-      link.href.includes('posts-for-patterns')
-            || link.href.includes('blog-pattern')
+      (link.href.includes('posts-for-patterns')
+            || link.href.includes('blog-pattern')) && !link.href.includes('/wordpress/') && !link.href.includes('/tag/')
     ) {
       link.addEventListener('click', preventDefaultClick, false);
     }

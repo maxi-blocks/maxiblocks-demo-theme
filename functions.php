@@ -397,10 +397,17 @@ function custom_taxonomy_redirect()
     // Get the current request URI
     $requested_url = $_SERVER['REQUEST_URI'];
 
-    // Check if the URL matches the pattern for the old structure for 'patterns', 'themes', or 'website-templates'
-    if (preg_match('#^/(patterns|themes|website-templates)/([^/]+/)*[^0-9]+/?$#', $requested_url)) {
+    // Check if the URL matches the pattern for the old structure for 'wordpress-patterns', 'wordpress-themes', or 'website-templates'
+    if (preg_match('#^/(wordpress-patterns|wordpress-themes|website-templates)/([^/]+/)*[^0-9]+/?$#', $requested_url)) {
         // Replace the old segment with 'wordpress/<segment>'
-        $new_url = preg_replace('#^/(patterns|themes|website-templates)/#', '/wordpress/$1/', $requested_url);
+        $new_url = preg_replace_callback('#^/(wordpress-patterns|wordpress-themes|website-templates)/#', function ($matches) {
+            $term_name = $matches[1];
+            // Change 'patterns' to 'pattern' and 'templates' to 'template'
+            $term_name = preg_replace_callback('/\b(patterns|templates)\b/i', function ($matches) {
+                return rtrim($matches[0], 's');
+            }, $term_name);
+            return '/wordpress/' . $term_name . '/';
+        }, $requested_url);
 
         // Issue the redirect (301 - permanent redirect)
         wp_redirect(home_url($new_url), 301);
@@ -832,3 +839,115 @@ function save_custom_fields_for_tag($term_id, $tt_id)
         );
     }
 }
+
+/**
+ * Add custom body class when page is loaded in iframe
+ */
+function add_iframe_body_class($classes)
+{
+    if (isset($_SERVER['HTTP_SEC_FETCH_DEST']) && $_SERVER['HTTP_SEC_FETCH_DEST'] === 'iframe') {
+        $classes[] = 'in-iframe';
+    }
+    return $classes;
+}
+add_filter('body_class', 'add_iframe_body_class');
+
+/**
+ * Add custom CSS to hide header and footer in iframe
+ */
+function hide_header_footer_in_iframe()
+{
+    echo '<style>
+        body.single-post.in-iframe header,
+        body.single-post.in-iframe footer,
+		body.single-post.in-iframe .entry-content .hidden-in-iframe,
+		body.single-post.in-iframe .wp-site-blocks > section {
+            display: none !important;
+        }
+		body.single-post:not(.in-iframe) .entry-content {
+			margin-top: 0 !important;
+		}
+    </style>';
+}
+add_action('wp_head', 'hide_header_footer_in_iframe');
+
+/**
+ * Modify single post title to include top-level 'wordpress' taxonomy
+ *
+ * @param string $title The original title.
+ * @param int    $id    The post ID.
+ * @return string       The modified title.
+ */
+function modify_single_post_title($title, $id = null)
+{
+    // Only modify title on single post view
+    if (is_single() && get_post_type() === 'post') {
+        // Get the terms for the 'wordpress' taxonomy
+        $terms = get_the_terms($id, 'wordpress');
+
+        // Check if the post has terms in the 'wordpress' taxonomy
+        if ($terms && !is_wp_error($terms)) {
+            // Get the first term (assuming one term for simplicity)
+            $term = $terms[0];
+
+            // Traverse up the hierarchy to find the top-level term
+            while ($term->parent != 0) {
+                $term = get_term($term->parent, 'wordpress');
+            }
+
+            // If we found a top-level term, modify the title
+            if ($term) {
+                $term_name = $term->name;
+
+                // Change 'patterns' to 'pattern' and 'templates' to 'template'
+                $term_name = preg_replace_callback('/\b(patterns|templates)\b/i', function ($matches) {
+                    return rtrim($matches[0], 's');
+                }, $term_name);
+
+                $title = $term_name . ': ' . $title;
+            }
+        }
+    }
+
+    return $title;
+}
+add_filter('the_title', 'modify_single_post_title', 10, 2);
+
+/**
+ * Modify archive page titles for 'wordpress' taxonomy and tags
+ *
+ * @param string $title The original title.
+ * @return string       The modified title.
+ */
+function modify_archive_titles($title)
+{
+    if (is_tax('wordpress')) {
+        $term = get_queried_object();
+
+        if ($term && !is_wp_error($term)) {
+            $top_level_term = $term;
+
+            // Traverse up the hierarchy to find the top-level term
+            while ($top_level_term->parent != 0) {
+                $parent_term = get_term($top_level_term->parent, 'wordpress');
+                if (!is_wp_error($parent_term)) {
+                    $top_level_term = $parent_term;
+                } else {
+                    break;
+                }
+            }
+
+            // If we found a top-level term and it's different from the current term
+            if ($top_level_term && $top_level_term->term_id !== $term->term_id) {
+                $top_level_name = $top_level_term->name;
+                $title = $top_level_name . ': ' . $term->name;
+            } else {
+                // If it's already a top-level term, just return its name
+                $title = $term->name;
+            }
+        }
+    }
+
+    return $title;
+}
+add_filter('get_the_archive_title', 'modify_archive_titles');
