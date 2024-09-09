@@ -473,7 +473,7 @@ function hide_default_description_field()
 function save_wysiwyg_editor_content($term_id)
 {
     if (isset($_POST['custom_description'])) {
-        $description = wp_kses($_POST['custom_description'], custom_allowed_html());
+        $description = wp_kses(stripslashes($_POST['custom_description']), custom_allowed_html());
         add_filter('pre_insert_term', function ($term, $taxonomy) use ($description) {
             if ($taxonomy === 'wordpress' || $taxonomy === 'post_tag') {
                 $term['description'] = $description;
@@ -490,7 +490,7 @@ function update_term_description($term_id, $tt_id, $taxonomy)
 {
     if (($taxonomy === 'wordpress' || $taxonomy === 'post_tag') && isset($_POST['custom_description'])) {
         global $wpdb;
-        $description = wp_kses($_POST['custom_description'], custom_allowed_html());
+        $description = wp_kses(stripslashes($_POST['custom_description']), custom_allowed_html());
         $wpdb->update(
             $wpdb->term_taxonomy,
             array('description' => $description),
