@@ -419,12 +419,13 @@ add_action('template_redirect', 'custom_taxonomy_redirect');
 // Add WYSIWYG Editor to Taxonomy Description
 function add_wysiwyg_to_taxonomy_description()
 {
-    if (! function_exists('use_block_editor_for_post_type')) {
+    if (!function_exists('use_block_editor_for_post_type')) {
         return;
     }
 
     if (use_block_editor_for_post_type('post')) {
         add_action('wordpress_edit_form_fields', 'render_wysiwyg_editor_for_taxonomy', 10, 2);
+        add_action('post_tag_edit_form_fields', 'render_wysiwyg_editor_for_taxonomy', 10, 2);
         add_action('admin_footer', 'hide_default_description_field');
     }
 }
@@ -445,7 +446,7 @@ function render_wysiwyg_editor_for_taxonomy($term, $taxonomy)
             );
     wp_editor(html_entity_decode($term->description), 'custom_description', $settings);
     ?>
-            <p class="description"><?php _e('The description is not prominent by default; however, some themes may show it.', 'maxiblocks-demo-theme'); ?></p>
+            <p class="description"><?php _e('Add description, basic html is allowed.', 'maxiblocks-demo-theme'); ?></p>
         </td>
     </tr>
     <?php
@@ -457,84 +458,15 @@ function hide_default_description_field()
     ?>
     <style>
        body.taxonomy-wordpress .term-description-wrap:not(:has(#custom_description)),
-	   body.taxonomy-wordpress .term-description-wrap:last-child{
+       body.taxonomy-post_tag .term-description-wrap:not(:has(#custom_description)) {
             display: none !important;
         }
-		body.taxonomy-wordpress form#edittag {
-			max-width: 100%;
-		}
+        body.taxonomy-wordpress form#edittag,
+        body.taxonomy-post_tag form#edittag {
+            max-width: 100%;
+        }
     </style>
     <?php
-}
-
-// Define custom allowed HTML tags and attributes
-function custom_allowed_html()
-{
-    return array(
-        'a' => array(
-            'href' => array(),
-            'title' => array(),
-            'target' => array(),
-            'rel' => array(),
-        ),
-        'b' => array(),
-        'blockquote' => array(
-            'cite' => array(),
-        ),
-        'br' => array(),
-        'div' => array(
-            'class' => array(),
-            'id' => array(),
-            'style' => array(),
-        ),
-        'em' => array(),
-        'h1' => array(),
-        'h2' => array(),
-        'h3' => array(),
-        'h4' => array(),
-        'h5' => array(),
-        'h6' => array(),
-        'i' => array(),
-        'img' => array(
-            'alt' => array(),
-            'class' => array(),
-            'height' => array(),
-            'src' => array(),
-            'width' => array(),
-        ),
-        'li' => array(
-            'class' => array(),
-        ),
-        'ol' => array(
-            'class' => array(),
-        ),
-        'p' => array(
-            'class' => array(),
-        ),
-        'span' => array(
-            'class' => array(),
-            'style' => array(),
-        ),
-        'strong' => array(),
-        'ul' => array(
-            'class' => array(),
-        ),
-        'code' => array(),
-        'pre' => array(),
-        'table' => array(
-            'class' => array(),
-            'style' => array(),
-        ),
-        'thead' => array(),
-        'tbody' => array(),
-        'tr' => array(),
-        'th' => array(
-            'scope' => array(),
-        ),
-        'td' => array(
-            'colspan' => array(),
-        ),
-    );
 }
 
 // Save the WYSIWYG Editor Content
@@ -543,7 +475,7 @@ function save_wysiwyg_editor_content($term_id)
     if (isset($_POST['custom_description'])) {
         $description = wp_kses($_POST['custom_description'], custom_allowed_html());
         add_filter('pre_insert_term', function ($term, $taxonomy) use ($description) {
-            if ($taxonomy === 'wordpress') {
+            if ($taxonomy === 'wordpress' || $taxonomy === 'post_tag') {
                 $term['description'] = $description;
             }
             return $term;
@@ -551,11 +483,12 @@ function save_wysiwyg_editor_content($term_id)
     }
 }
 add_action('edited_wordpress', 'save_wysiwyg_editor_content');
+add_action('edited_post_tag', 'save_wysiwyg_editor_content');
 
 // Update term description in database directly
 function update_term_description($term_id, $tt_id, $taxonomy)
 {
-    if ($taxonomy === 'wordpress' && isset($_POST['custom_description'])) {
+    if (($taxonomy === 'wordpress' || $taxonomy === 'post_tag') && isset($_POST['custom_description'])) {
         global $wpdb;
         $description = wp_kses($_POST['custom_description'], custom_allowed_html());
         $wpdb->update(
@@ -567,277 +500,33 @@ function update_term_description($term_id, $tt_id, $taxonomy)
 }
 add_action('edited_term', 'update_term_description', 10, 3);
 
-function add_custom_fields_to_taxonomy()
+function modify_archive_titles($title)
 {
-    if (!function_exists('use_block_editor_for_post_type')) {
-        return;
-    }
-
-    if (use_block_editor_for_post_type('post')) {
-        add_action('wordpress_edit_form_fields', 'render_custom_fields_for_taxonomy', 10, 2);
-        add_action('edited_wordpress', 'save_custom_fields_for_taxonomy', 10, 2);
-        add_action('admin_footer', 'hide_default_description_field');
-
-        // Register meta fields for REST API
-        register_term_meta('wordpress', 'seo_header', array(
-            'show_in_rest' => true,
-            'single' => true,
-            'type' => 'string',
-        ));
-        register_term_meta('wordpress', 'subheader', array(
-            'show_in_rest' => true,
-            'single' => true,
-            'type' => 'string',
-        ));
-    }
-}
-add_action('admin_init', 'add_custom_fields_to_taxonomy');
-
-function render_custom_fields_for_taxonomy($term, $taxonomy)
-{
-    wp_enqueue_editor();
-    $seo_header = get_term_meta($term->term_id, 'seo_header', true);
-    $subheader = get_term_meta($term->term_id, 'subheader', true);
-    ?>
-    <tr class="form-field">
-        <th scope="row"><label for="seo_header"><?php _e('SEO Header', 'maxiblocks-demo-theme'); ?></label></th>
-        <td>
-            <?php
-            $seo_header_settings = array(
-                'textarea_name' => 'seo_header',
-                'textarea_rows' => 5,
-                'editor_height' => 150,
-            );
-    wp_editor(html_entity_decode($seo_header), 'seo_header', $seo_header_settings);
-    ?>
-            <p class="description"><?php _e('Enter a SEO Header for this term.', 'maxiblocks-demo-theme'); ?></p>
-        </td>
-    </tr>
-    <tr class="form-field">
-        <th scope="row"><label for="subheader"><?php _e('Subheader', 'maxiblocks-demo-theme'); ?></label></th>
-        <td>
-            <?php
-    $subheader_settings = array(
-        'textarea_name' => 'subheader',
-        'textarea_rows' => 5,
-        'editor_height' => 150,
-    );
-    wp_editor(html_entity_decode($subheader), 'subheader', $subheader_settings);
-    ?>
-            <p class="description"><?php _e('Enter a subheader for this term.', 'maxiblocks-demo-theme'); ?></p>
-        </td>
-    </tr>
-    <?php
-}
-
-function save_custom_fields_for_taxonomy($term_id, $tt_id)
-{
-    if (isset($_POST['seo_header'])) {
-        update_term_meta($term_id, 'seo_header', wp_kses_post($_POST['seo_header']));
-    }
-    if (isset($_POST['subheader'])) {
-        update_term_meta($term_id, 'subheader', wp_kses_post($_POST['subheader']));
-    }
-    if (isset($_POST['custom_description'])) {
-        $description = wp_kses($_POST['custom_description'], custom_allowed_html());
-        global $wpdb;
-        $wpdb->update(
-            $wpdb->term_taxonomy,
-            array('description' => $description),
-            array('term_id' => $term_id, 'taxonomy' => 'wordpress')
-        );
-    }
-}
-
-// Add shortcodes for custom taxonomy fields
-function seo_header_shortcode()
-{
-    $term = get_queried_object();
-    if (!$term || !isset($term->term_id)) {
-        return '';
-    }
-
-    $seo_header = get_term_meta($term->term_id, 'seo_header', true);
-    return '<div class="custom-taxonomy-field seo-header">' . wp_kses_post($seo_header) . '</div>';
-}
-add_shortcode('seo_header', 'seo_header_shortcode');
-
-function subheader_shortcode()
-{
-    $term = get_queried_object();
-    if (!$term || !isset($term->term_id)) {
-        return '';
-    }
-
-    $subheader = get_term_meta($term->term_id, 'subheader', true);
-    return '<div class="custom-taxonomy-field subheader">' . wp_kses_post($subheader) . '</div>';
-}
-add_shortcode('subheader', 'subheader_shortcode');
-
-
-// Add WYSIWYG Editor to Tag Description
-function add_wysiwyg_to_tag_description()
-{
-    if (! function_exists('use_block_editor_for_post_type')) {
-        return;
-    }
-
-    if (use_block_editor_for_post_type('post')) {
-        add_action('post_tag_edit_form_fields', 'render_wysiwyg_editor_for_tag', 10, 2);
-        add_action('admin_footer', 'hide_default_description_field_tag');
-    }
-}
-add_action('admin_init', 'add_wysiwyg_to_tag_description');
-
-function render_wysiwyg_editor_for_tag($term, $taxonomy)
-{
-    wp_enqueue_editor();
-    ?>
-    <tr class="form-field tag-description-wrap">
-        <th scope="row" valign="top"><label for="description"><?php _e('Description', 'maxiblocks-demo-theme'); ?></label></th>
-        <td>
-            <?php
-            $settings = array(
-                'textarea_name' => 'custom_description',
-                'textarea_rows' => 10,
-                'editor_height' => 300,
-            );
-    wp_editor(html_entity_decode($term->description), 'custom_description', $settings);
-    ?>
-            <p class="description"><?php _e('The description is not prominent by default; however, some themes may show it.', 'maxiblocks-demo-theme'); ?></p>
-        </td>
-    </tr>
-    <?php
-}
-
-// Hide the default description field
-function hide_default_description_field_tag()
-{
-    ?>
-    <style>
-       body.taxonomy-post_tag .tag-description-wrap:not(:has(#custom_description)),
-	   body.taxonomy-post_tag .tag-description-wrap:last-child,
-	   body.taxonomy-post_tag .term-description-wrap {
-            display: none !important;
-        }
-		body.taxonomy-post_tag form#edittag {
-			max-width: 100%;
-		}
-    </style>
-    <?php
-}
-
-// Save the WYSIWYG Editor Content
-function save_wysiwyg_editor_content_tag($term_id)
-{
-    if (isset($_POST['custom_description'])) {
-
-        $description = wp_kses($_POST['custom_description'], custom_allowed_html());
-        add_filter('pre_insert_term', function ($term, $taxonomy) use ($description) {
-            if ($taxonomy === 'post_tag') {
-                $term['description'] = $description;
+    if (is_tax('wordpress')) {
+        $term = get_queried_object();
+        if ($term && !is_wp_error($term)) {
+            $top_level_term = get_top_level_term($term->term_id, 'wordpress');
+            if ($top_level_term && $top_level_term->term_id !== $term->term_id) {
+                $title = $top_level_term->name . ': ' . $term->name;
             }
-            return $term;
-        }, 10, 2);
+        }
+    } elseif (is_tag()) {
+        $tag = get_queried_object();
+        if ($tag && !is_wp_error($tag)) {
+            $title = 'Tag: ' . $tag->name;
+        }
     }
+    return $title;
 }
-add_action('edited_post_tag', 'save_wysiwyg_editor_content_tag');
+add_filter('get_the_archive_title', 'modify_archive_titles');
 
-// Update tag description in database directly
-function update_tag_description_tag($term_id, $tt_id, $taxonomy)
+function get_top_level_term($term_id, $taxonomy)
 {
-    if ($taxonomy === 'post_tag' && isset($_POST['custom_description'])) {
-        global $wpdb;
-        $description = wp_kses($_POST['custom_description'], custom_allowed_html());
-        $wpdb->update(
-            $wpdb->term_tag,
-            array('description' => $description),
-            array('term_id' => $term_id, 'taxonomy' => $taxonomy)
-        );
+    $term = get_term($term_id, $taxonomy);
+    while ($term->parent != 0) {
+        $term = get_term($term->parent, $taxonomy);
     }
-}
-add_action('edited_term', 'update_tag_description_tag', 10, 3);
-
-function add_custom_fields_to_tag()
-{
-    if (!function_exists('use_block_editor_for_post_type')) {
-        return;
-    }
-
-    if (use_block_editor_for_post_type('post')) {
-        add_action('post_tag_edit_form_fields', 'render_custom_fields_for_tag', 10, 2);
-        add_action('edited_post_tag', 'save_custom_fields_for_tag', 10, 2);
-        add_action('admin_footer', 'hide_default_description_field_tag');
-
-        // Register meta fields for REST API
-        register_term_meta('post_tag', 'seo_header', array(
-            'show_in_rest' => true,
-            'single' => true,
-            'type' => 'string',
-        ));
-        register_term_meta('post_tag', 'subheader', array(
-            'show_in_rest' => true,
-            'single' => true,
-            'type' => 'string',
-        ));
-    }
-}
-add_action('admin_init', 'add_custom_fields_to_tag');
-
-function render_custom_fields_for_tag($term, $taxonomy)
-{
-    wp_enqueue_editor();
-    $seo_header = get_term_meta($term->term_id, 'seo_header', true);
-    $subheader = get_term_meta($term->term_id, 'subheader', true);
-    ?>
-    <tr class="form-field">
-        <th scope="row"><label for="seo_header"><?php _e('SEO Header', 'maxiblocks-demo-theme'); ?></label></th>
-        <td>
-            <?php
-            $seo_header_settings = array(
-                'textarea_name' => 'seo_header',
-                'textarea_rows' => 5,
-                'editor_height' => 150,
-            );
-    wp_editor(html_entity_decode($seo_header), 'seo_header', $seo_header_settings);
-    ?>
-            <p class="description"><?php _e('Enter a SEO Header for this term.', 'maxiblocks-demo-theme'); ?></p>
-        </td>
-    </tr>
-    <tr class="form-field">
-        <th scope="row"><label for="subheader"><?php _e('Subheader', 'maxiblocks-demo-theme'); ?></label></th>
-        <td>
-            <?php
-    $subheader_settings = array(
-        'textarea_name' => 'subheader',
-        'textarea_rows' => 5,
-        'editor_height' => 150,
-    );
-    wp_editor(html_entity_decode($subheader), 'subheader', $subheader_settings);
-    ?>
-            <p class="description"><?php _e('Enter a subheader for this term.', 'maxiblocks-demo-theme'); ?></p>
-        </td>
-    </tr>
-    <?php
-}
-
-function save_custom_fields_for_tag($term_id, $tt_id)
-{
-    if (isset($_POST['seo_header'])) {
-        update_term_meta($term_id, 'seo_header', wp_kses_post($_POST['seo_header']));
-    }
-    if (isset($_POST['subheader'])) {
-        update_term_meta($term_id, 'subheader', wp_kses_post($_POST['subheader']));
-    }
-    if (isset($_POST['custom_description'])) {
-        $description = wp_kses($_POST['custom_description'], custom_allowed_html());
-        global $wpdb;
-        $wpdb->update(
-            $wpdb->term_taxonomy,
-            array('description' => $description),
-            array('term_id' => $term_id, 'taxonomy' => 'post_tag')
-        );
-    }
+    return $term;
 }
 
 /**
@@ -913,41 +602,72 @@ function modify_single_post_title($title, $id = null)
 }
 add_filter('the_title', 'modify_single_post_title', 10, 2);
 
-/**
- * Modify archive page titles for 'wordpress' taxonomy and tags
- *
- * @param string $title The original title.
- * @return string       The modified title.
- */
-function modify_archive_titles($title)
+// Define custom allowed HTML tags and attributes
+function custom_allowed_html()
 {
-    if (is_tax('wordpress')) {
-        $term = get_queried_object();
-
-        if ($term && !is_wp_error($term)) {
-            $top_level_term = $term;
-
-            // Traverse up the hierarchy to find the top-level term
-            while ($top_level_term->parent != 0) {
-                $parent_term = get_term($top_level_term->parent, 'wordpress');
-                if (!is_wp_error($parent_term)) {
-                    $top_level_term = $parent_term;
-                } else {
-                    break;
-                }
-            }
-
-            // If we found a top-level term and it's different from the current term
-            if ($top_level_term && $top_level_term->term_id !== $term->term_id) {
-                $top_level_name = $top_level_term->name;
-                $title = $top_level_name . ': ' . $term->name;
-            } else {
-                // If it's already a top-level term, just return its name
-                $title = $term->name;
-            }
-        }
-    }
-
-    return $title;
+    return array(
+        'a' => array(
+            'href' => array(),
+            'title' => array(),
+            'target' => array(),
+            'rel' => array(),
+        ),
+        'b' => array(),
+        'blockquote' => array(
+            'cite' => array(),
+        ),
+        'br' => array(),
+        'div' => array(
+            'class' => array(),
+            'id' => array(),
+            'style' => array(),
+        ),
+        'em' => array(),
+        'h1' => array(),
+        'h2' => array(),
+        'h3' => array(),
+        'h4' => array(),
+        'h5' => array(),
+        'h6' => array(),
+        'i' => array(),
+        'img' => array(
+            'alt' => array(),
+            'class' => array(),
+            'height' => array(),
+            'src' => array(),
+            'width' => array(),
+        ),
+        'li' => array(
+            'class' => array(),
+        ),
+        'ol' => array(
+            'class' => array(),
+        ),
+        'p' => array(
+            'class' => array(),
+        ),
+        'span' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'strong' => array(),
+        'ul' => array(
+            'class' => array(),
+        ),
+        'code' => array(),
+        'pre' => array(),
+        'table' => array(
+            'class' => array(),
+            'style' => array(),
+        ),
+        'thead' => array(),
+        'tbody' => array(),
+        'tr' => array(),
+        'th' => array(
+            'scope' => array(),
+        ),
+        'td' => array(
+            'colspan' => array(),
+        ),
+    );
 }
-add_filter('get_the_archive_title', 'modify_archive_titles');
