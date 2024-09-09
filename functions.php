@@ -705,3 +705,47 @@ function custom_allowed_html()
         ),
     );
 }
+
+function custom_rank_math_breadcrumb_items($items, $class)
+{
+    // Only modify breadcrumbs for single posts
+    if (is_single() && get_post_type() === 'post') {
+        $post_id = get_the_ID();
+        $terms = wp_get_post_terms($post_id, 'wordpress');
+
+        if (!empty($terms) && !is_wp_error($terms)) {
+            $term_hierarchy = array();
+            $current_term = $terms[0];
+
+            // Build the term hierarchy
+            while ($current_term->parent != 0) {
+                array_unshift($term_hierarchy, $current_term);
+                $current_term = get_term($current_term->parent, 'wordpress');
+            }
+            array_unshift($term_hierarchy, $current_term);
+
+            // Rebuild the breadcrumb items
+            $new_items = array($items[0]); // Keep the home item
+
+            foreach ($term_hierarchy as $term) {
+                $new_items[] = array(
+                    $term->name,
+                    get_term_link($term),
+                    false // Not hidden in schema
+                );
+            }
+
+            // Add the current post
+            $new_items[] = array(
+                get_the_title(),
+                get_permalink(),
+                false // Not hidden in schema
+            );
+
+            return $new_items;
+        }
+    }
+
+    return $items;
+}
+add_filter('rank_math/frontend/breadcrumb/items', 'custom_rank_math_breadcrumb_items', 10, 2);
