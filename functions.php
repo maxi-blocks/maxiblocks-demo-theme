@@ -443,8 +443,11 @@ function render_wysiwyg_editor_for_taxonomy($term, $taxonomy)
                 'textarea_name' => 'custom_description',
                 'textarea_rows' => 10,
                 'editor_height' => 300,
+                'tinymce' => array(
+                    'wpautop' => false,
+                ),
             );
-    wp_editor(html_entity_decode($term->description), 'custom_description', $settings);
+    wp_editor(wp_kses(stripslashes($term->description), custom_allowed_html()), 'custom_description', $settings);
     ?>
             <p class="description"><?php _e('Add description, basic html is allowed.', 'maxiblocks-demo-theme'); ?></p>
         </td>
@@ -601,6 +604,37 @@ function modify_single_post_title($title, $id = null)
     return $title;
 }
 add_filter('the_title', 'modify_single_post_title', 10, 2);
+
+function register_acf_additional_description_block()
+{
+    if (function_exists('acf_register_block_type')) {
+        acf_register_block_type(array(
+            'name'              => 'acf-additional-description',
+            'title'             => __('Additional Description'),
+            'description'       => __('A custom block to display the additional description.'),
+            'render_callback'   => 'render_acf_additional_description_block',
+            'category'          => 'formatting',
+            'icon'              => 'admin-comments',
+            'keywords'          => array( 'additional', 'description', 'acf' ),
+        ));
+    }
+}
+add_action('acf/init', 'register_acf_additional_description_block');
+
+function render_acf_additional_description_block($block, $content = '', $is_preview = false)
+{
+    $post_id = get_the_ID();
+    $additional_description = get_post_meta($post_id, 'additional_description', true);
+    $description_content = is_array($additional_description) ? $additional_description[0] : $additional_description;
+
+    if (!empty($description_content)) {
+        $formatted_content = wpautop($description_content); // Apply wpautop()
+        echo '<div class="additional-description hidden-in-iframe maxi-block--use-sc">' . wp_kses($formatted_content, custom_allowed_html()) . '</div>';
+    } elseif ($is_preview) {
+        echo '<div class="additional-description hidden-in-iframe maxi-block--use-sc">Additional Description placeholder</div>';
+    }
+}
+
 
 // Define custom allowed HTML tags and attributes
 function custom_allowed_html()
