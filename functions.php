@@ -447,7 +447,7 @@ function render_wysiwyg_editor_for_taxonomy($term, $taxonomy)
                     'wpautop' => false,
                 ),
             );
-    wp_editor(wp_kses(stripslashes($term->description), custom_allowed_html()), 'custom_description', $settings);
+    wp_editor(html_entity_decode(wp_kses_decode_entities($term->description)), 'custom_description', $settings);
     ?>
             <p class="description"><?php _e('Add description, basic html is allowed.', 'maxiblocks-demo-theme'); ?></p>
         </td>
