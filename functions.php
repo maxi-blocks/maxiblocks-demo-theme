@@ -749,3 +749,80 @@ function custom_rank_math_breadcrumb_items($items, $class)
     return $items;
 }
 add_filter('rank_math/frontend/breadcrumb/items', 'custom_rank_math_breadcrumb_items', 10, 2);
+
+
+add_filter('render_block_data', function ($parsed_block) {
+    if (isset($parsed_block['innerContent'])) {
+        foreach ($parsed_block['innerContent'] as &$innerContent) {
+            if (empty($innerContent)) {
+                continue;
+            }
+
+            $innerContent = do_shortcode($innerContent);
+        }
+    }
+
+    if (isset($parsed_block['innerBlocks'])) {
+        foreach ($parsed_block['innerBlocks'] as $key => &$innerBlock) {
+            if (! empty($innerBlock['innerContent'])) {
+                foreach ($innerBlock['innerContent'] as &$innerContent) {
+                    if (empty($innerContent)) {
+                        continue;
+                    }
+
+                    $innerContent = do_shortcode($innerContent);
+                }
+            }
+        }
+    }
+
+    return $parsed_block;
+}, 10, 1);
+
+// Run the function when the theme is activated
+register_activation_hook(__FILE__, 'maxiblocks_go_parse_txt_files_and_update_posts');
+
+/**
+ * Retrieve 'fifu_image_url' meta values with post titles and save to thumbnails.json
+ */
+function get_fifu_image_urls_to_json()
+{
+    global $wpdb;
+
+    // Query to get 'fifu_image_url' meta values with corresponding post IDs
+    $query = "
+        SELECT pm.post_id, pm.meta_value AS image_url, p.post_title
+        FROM {$wpdb->postmeta} pm
+        JOIN {$wpdb->posts} p ON pm.post_id = p.ID
+        WHERE pm.meta_key = 'fifu_image_url'
+    ";
+    $results = $wpdb->get_results($query);
+
+    // Prepare data for JSON
+    $data = array();
+    foreach ($results as $row) {
+        $data[] = array(
+            'post_id' => $row->post_id,
+            'post_title' => $row->post_title, // Keep the title as is
+            'image_url' => $row->image_url
+        );
+    }
+
+    // Get the directory of the current file (functions.php)
+    $directory = dirname(__FILE__);
+    $file_path = $directory . '/thumbnails.json';
+
+    // Write JSON data to file
+    $json_data = json_encode($data, JSON_PRETTY_PRINT);
+    if (file_put_contents($file_path, $json_data) === false) {
+        error_log("Failed to write JSON file: " . $file_path);
+    } else {
+        error_log("thumbnails.json file created successfully at: " . $file_path);
+    }
+}
+
+// Run the function when the theme is activated
+//register_activation_hook(__FILE__, 'get_fifu_image_urls_to_json');
+
+// Or, if you want to run it manually (e.g., by visiting a specific admin page):
+//add_action('admin_init', 'get_fifu_image_urls_to_json');
