@@ -826,3 +826,67 @@ function get_fifu_image_urls_to_json()
 
 // Or, if you want to run it manually (e.g., by visiting a specific admin page):
 //add_action('admin_init', 'get_fifu_image_urls_to_json');
+
+function maxiblocks_go_parse_txt_files_and_update_posts()
+{
+    $descriptions_dir = get_template_directory() . '/descriptions/';
+
+    // Check if the directory exists
+    if (!is_dir($descriptions_dir)) {
+        error_log("Descriptions directory not found: $descriptions_dir");
+        return;
+    }
+
+    // Get all .txt files in the directory
+    $txt_files = glob($descriptions_dir . '*.txt');
+
+    foreach ($txt_files as $file) {
+        // Get the filename without extension
+        $filename = basename($file, '.txt');
+
+        // Use the filename as the post title (keeping dashes)
+        $post_title = $filename;
+
+        // Find the post by title using WP_Query
+        $query = new WP_Query(array(
+            'post_type' => 'post',
+            'post_status' => 'any',
+            'title' => $post_title,
+            'posts_per_page' => 1,
+        ));
+
+        if ($query->have_posts()) {
+            $query->the_post();
+            $post_id = get_the_ID();
+
+            // Check if additional_description already has content
+            $existing_description = get_post_meta($post_id, 'additional_description', true);
+            if (!empty($existing_description)) {
+                error_log("Skipped updating additional_description for post: $post_title - Content already exists");
+                wp_reset_postdata();
+                continue;
+            }
+
+            // Read the file content
+            $description = file_get_contents($file);
+
+            // Sanitize the content (allow HTML)
+            $sanitized_description = wp_kses($description, custom_allowed_html());
+
+            // Update the custom field
+            update_post_meta($post_id, 'additional_description', $sanitized_description);
+
+            error_log("Updated additional_description for post: $post_title");
+        } else {
+            error_log("No matching post found for: $post_title");
+        }
+
+        wp_reset_postdata();
+    }
+}
+
+// Run the function when the theme is activated
+// register_activation_hook(__FILE__, 'maxiblocks_go_parse_txt_files_and_update_posts');
+
+// Or, if you want to run it manually (e.g., by visiting a specific admin page):
+// add_action('admin_init', 'maxiblocks_go_parse_txt_files_and_update_posts');
