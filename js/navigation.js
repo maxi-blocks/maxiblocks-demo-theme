@@ -115,9 +115,9 @@ function disableLinksIfPatternInURLorHref() {
   // Disable clicks based on current URL
   if (window.location.href.includes('block-pattern') && !window.location.href.includes('/wordpress/') && !window.location.href.includes('/tag/')) {
     // Selector for links with specified classes inside 'maxi-column-block' divs
-    const classSelector = '.maxi-column-block .maxi-link-wrapper, '
-            + '.maxi-column-block .maxi-components-button, '
-            + '.maxi-column-block .maxi-text-block--link';
+    const classSelector = '.wp-block-post-content .maxi-column-block .maxi-link-wrapper, '
+            + '.wp-block-post-content .maxi-column-block .maxi-components-button, '
+            + '.wp-block-post-content .maxi-column-block .maxi-text-block--link';
 
     // Get all links matching the class selector
     const linksWithClasses = document.querySelectorAll(classSelector);

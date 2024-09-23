@@ -167,7 +167,9 @@ function cloud_restrict_manage_posts()
             echo "<select name='$tax_slug' id='$tax_slug' class='postform'>";
             echo "<option value=''>All $tax_name</option>";
             foreach ($terms as $term) {
-                echo '<option value='. $term->slug, $_GET[$tax_slug] == $term->slug ? ' selected="selected"' : '','>' . $term->name .' (' . $term->count .')</option>';
+                // Check if the key exists in $_GET before using it
+                $selected = isset($_GET[$tax_slug]) && $_GET[$tax_slug] == $term->slug ? ' selected="selected"' : '';
+                echo '<option value="' . $term->slug . '"' . $selected . '>' . $term->name . ' (' . $term->count . ')</option>';
             }
             echo "</select>";
         }
@@ -553,7 +555,8 @@ function hide_header_footer_in_iframe()
         body.single-post.in-iframe header,
         body.single-post.in-iframe footer,
 		body.single-post.in-iframe .entry-content .hidden-in-iframe,
-		body.single-post.in-iframe .wp-site-blocks > section {
+		body.single-post.in-iframe .wp-site-blocks > section,
+		body.single-post.in-iframe .wp-site-blocks > div.hidden-in-iframe {
             display: none !important;
         }
 		body.single-post:not(.in-iframe) .entry-content {
