@@ -453,9 +453,6 @@ big {
 
 /* Elements
 --------------------------------------------- */
-body {
-	background: #fff;
-}
 
 hr:not([class^="maxi-"]) {
 	background-color: #ccc;
@@ -968,4 +965,8 @@ html {
 :root {
 	--wp--style--global--content-size: 100%;
 	--wp--style--global--wide-size: 100%;
+}
+
+body.single-post .wp-block-post-content.maxi-block--use-sc div:has(> a, > time > a):not(.wp-element-button):not(.wp-block-navigation-item):not(.maxi-group-block) {
+	margin-bottom: inherit !important;
 }
