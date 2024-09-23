@@ -399,6 +399,14 @@ function custom_taxonomy_redirect()
     // Get the current request URI
     $requested_url = $_SERVER['REQUEST_URI'];
 
+    // Get the site URL path to handle cases where WordPress is installed in a subdirectory
+    $site_url_path = parse_url(home_url(), PHP_URL_PATH);
+
+    // Remove the site URL path from the requested URL if it exists
+    if ($site_url_path && strpos($requested_url, $site_url_path) === 0) {
+        $requested_url = substr($requested_url, strlen($site_url_path));
+    }
+
     // Check if the URL matches the pattern for the old structure for 'wordpress-patterns', 'wordpress-themes', or 'website-templates'
     if (preg_match('#^/(wordpress-patterns|wordpress-themes|website-templates)/([^/]+/)*[^0-9]+/?$#', $requested_url)) {
         // Replace the old segment with 'wordpress/<segment>'
@@ -410,6 +418,11 @@ function custom_taxonomy_redirect()
             }, $term_name);
             return '/wordpress/' . $term_name . '/';
         }, $requested_url);
+
+        // Prepend the site URL path to the new URL if it exists
+        if ($site_url_path) {
+            $new_url = $site_url_path . $new_url;
+        }
 
         // Issue the redirect (301 - permanent redirect)
         wp_redirect(home_url($new_url), 301);
