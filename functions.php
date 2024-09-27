@@ -420,9 +420,9 @@ function custom_taxonomy_redirect()
         }, $requested_url);
 
         // Prepend the site URL path to the new URL if it exists
-        if ($site_url_path) {
-            $new_url = $site_url_path . $new_url;
-        }
+        // if ($site_url_path) {
+        //     $new_url = $site_url_path . $new_url;
+        // }
 
         // Issue the redirect (301 - permanent redirect)
         wp_redirect(home_url($new_url), 301);
@@ -753,6 +753,13 @@ function custom_rank_math_breadcrumb_items($items, $class)
             // Rebuild the breadcrumb items
             $new_items = array($items[0]); // Keep the home item
 
+            // Add the new "WordPress" item after Home
+            $new_items[] = array(
+                'WordPress',
+                home_url('/wordpress/'),
+                false // Not hidden in schema
+            );
+
             foreach ($term_hierarchy as $term) {
                 $new_items[] = array(
                     $term->name,
@@ -770,6 +777,38 @@ function custom_rank_math_breadcrumb_items($items, $class)
 
             return $new_items;
         }
+    }
+    // New code for taxonomy pages
+    elseif (is_tax('wordpress')) {
+        $new_items = array($items[0]); // Keep the home item
+
+        // Add the new "WordPress" item after Home
+        $new_items[] = array(
+            'WordPress',
+            home_url('/wordpress/'),
+            false // Not hidden in schema
+        );
+
+        $term = get_queried_object();
+        $term_hierarchy = array();
+        $current_term = $term;
+
+        // Build the term hierarchy
+        while ($current_term->parent != 0) {
+            array_unshift($term_hierarchy, $current_term);
+            $current_term = get_term($current_term->parent, 'wordpress');
+        }
+        array_unshift($term_hierarchy, $current_term);
+
+        foreach ($term_hierarchy as $term) {
+            $new_items[] = array(
+                $term->name,
+                get_term_link($term),
+                false // Not hidden in schema
+            );
+        }
+
+        return $new_items;
     }
 
     return $items;
@@ -917,3 +956,55 @@ function maxiblocks_go_parse_txt_files_and_update_posts()
 
 // Or, if you want to run it manually (e.g., by visiting a specific admin page):
 //add_action('admin_init', 'maxiblocks_go_parse_txt_files_and_update_posts');
+
+
+/**
+ * Tag posts with 'wordpress' tag, excluding specific categories
+ */
+function maxi_tag_posts_with_wordpress()
+{
+    // Check if the tagging has already been done
+    if (get_option('maxi_posts_tagged_with_wordpress') === 'yes') {
+        return;
+    }
+
+    // Get the 'posts-for-patterns' category and its children
+    $exclude_category = get_category_by_slug('posts-for-patterns');
+    if (!$exclude_category) {
+        return; // Category doesn't exist, exit
+    }
+
+    $exclude_categories = get_term_children($exclude_category->term_id, 'category');
+    $exclude_categories[] = $exclude_category->term_id;
+
+    // Get the 'wordpress' tag, or create it if it doesn't exist
+    $wordpress_tag = get_term_by('slug', 'wordpress', 'post_tag');
+    if (!$wordpress_tag) {
+        $wordpress_tag = wp_insert_term('wordpress', 'post_tag');
+        if (is_wp_error($wordpress_tag)) {
+            return; // Failed to create tag, exit
+        }
+        $wordpress_tag = get_term_by('id', $wordpress_tag['term_id'], 'post_tag');
+    }
+
+    // Query for posts not in the excluded categories
+    $args = array(
+        'post_type' => 'post',
+        'posts_per_page' => -1, // Get all posts
+        'fields' => 'ids', // Only get post IDs
+        'category__not_in' => $exclude_categories,
+    );
+
+    $posts = get_posts($args);
+
+    // Tag the posts
+    foreach ($posts as $post_id) {
+        wp_set_post_tags($post_id, $wordpress_tag->slug, true);
+    }
+
+    // Mark the tagging as complete
+    update_option('maxi_posts_tagged_with_wordpress', 'yes');
+}
+
+// Hook the function to admin_init
+//add_action('admin_init', 'maxi_tag_posts_with_wordpress');
