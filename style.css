@@ -970,3 +970,9 @@ html {
 body.single-post .wp-block-post-content.maxi-block--use-sc div:has(> a, > time > a):not(.wp-element-button):not(.wp-block-navigation-item):not(.maxi-group-block) {
 	margin-bottom: inherit !important;
 }
+
+.is-layout-constrained> :where(:not(.alignleft):not(.alignright):not(.alignfull)) {
+	max-width: 100% !important;
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+}

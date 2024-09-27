@@ -483,6 +483,16 @@ function hide_default_description_field()
         body.taxonomy-post_tag form#edittag {
             max-width: 100%;
         }
+		body.wp-admin td.column-description {
+		  display: -webkit-box;
+		  -webkit-line-clamp: 5;
+		  -webkit-box-orient: vertical;
+		  overflow: hidden;
+		  text-overflow: ellipsis;
+		  max-height: 4.5em; /* Adjust based on your line-height */
+		}
+		body.wp-admin  td.column-description img {display: none;}
+		body.wp-admin  td.column-description > * {margin-top: 2px !important; margin-bottom: 2px !important;}
     </style>
     <?php
 }
@@ -805,12 +815,14 @@ function get_fifu_image_urls_to_json()
 {
     global $wpdb;
 
-    // Query to get 'fifu_image_url' meta values with corresponding post IDs
+    // Query to get 'fifu_image_url' meta values with corresponding post IDs, limited to the last 68 posts
     $query = "
         SELECT pm.post_id, pm.meta_value AS image_url, p.post_title
         FROM {$wpdb->postmeta} pm
         JOIN {$wpdb->posts} p ON pm.post_id = p.ID
         WHERE pm.meta_key = 'fifu_image_url'
+        ORDER BY p.post_date DESC
+        LIMIT 80
     ";
     $results = $wpdb->get_results($query);
 
@@ -836,7 +848,6 @@ function get_fifu_image_urls_to_json()
         error_log("thumbnails.json file created successfully at: " . $file_path);
     }
 }
-
 // Run the function when the theme is activated
 //register_activation_hook(__FILE__, 'get_fifu_image_urls_to_json');
 
@@ -905,4 +916,4 @@ function maxiblocks_go_parse_txt_files_and_update_posts()
 // register_activation_hook(__FILE__, 'maxiblocks_go_parse_txt_files_and_update_posts');
 
 // Or, if you want to run it manually (e.g., by visiting a specific admin page):
-// add_action('admin_init', 'maxiblocks_go_parse_txt_files_and_update_posts');
+//add_action('admin_init', 'maxiblocks_go_parse_txt_files_and_update_posts');
