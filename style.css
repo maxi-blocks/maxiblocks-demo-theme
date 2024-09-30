@@ -976,3 +976,29 @@ body.single-post .wp-block-post-content.maxi-block--use-sc div:has(> a, > time >
 	margin-left: 0 !important;
 	margin-right: 0 !important;
 }
+
+/* cut tags to first 2 */
+
+body.archive .MBP-container .maxi-row-block .maxi-column-block .maxi-group-block>.maxi-text-block:first-child p.maxi-text-block__content>a:nth-child(n+3) {
+	display: none !important;
+}
+
+body.archive .MBP-container .maxi-row-block .maxi-column-block .maxi-group-block>.maxi-text-block:first-child p.maxi-text-block__content {
+	line-height: 0 !important;
+	color: transparent !important;
+}
+
+body.archive .MBP-container .maxi-row-block .maxi-column-block .maxi-group-block>.maxi-text-block:first-child p.maxi-text-block__content>a {
+	line-height: normal;
+	color: initial;
+	text-decoration: underline;
+}
+
+body.archive .MBP-container .maxi-row-block .maxi-column-block .maxi-group-block>.maxi-text-block:first-child p.maxi-text-block__content>a:hover {
+	text-decoration: none;
+}
+
+body.archive .MBP-container .maxi-row-block .maxi-column-block .maxi-group-block>.maxi-text-block:first-child p.maxi-text-block__content>a:first-child::after {
+	content: ",";
+	color: rgb(155, 155, 155);
+}
