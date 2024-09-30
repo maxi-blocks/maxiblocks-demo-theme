@@ -778,7 +778,7 @@ function custom_rank_math_breadcrumb_items($items, $class)
             return $new_items;
         }
     }
-    // New code for taxonomy pages
+    // Existing code for taxonomy pages
     elseif (is_tax('wordpress')) {
         $new_items = array($items[0]); // Keep the home item
 
@@ -804,6 +804,65 @@ function custom_rank_math_breadcrumb_items($items, $class)
             $new_items[] = array(
                 $term->name,
                 get_term_link($term),
+                false // Not hidden in schema
+            );
+        }
+
+        return $new_items;
+    }
+    // New code for tag pages
+    elseif (is_tag()) {
+        $tag = get_queried_object();
+        $new_items = array(
+            $items[0], // Keep the home item
+            array(
+                'WordPress',
+                home_url('/wordpress/'),
+                false // Not hidden in schema
+            ),
+            array(
+                'Website templates',
+                home_url('/wordpress/website-templates/'),
+                false // Not hidden in schema
+            ),
+            array(
+                $tag->name,
+                get_term_link($tag),
+                false // Not hidden in schema
+            )
+        );
+        return $new_items;
+    }
+    // New code for category pages
+    elseif (is_category()) {
+        $category = get_queried_object();
+        $new_items = array(
+            $items[0], // Keep the home item
+            array(
+                'WordPress',
+                home_url('/wordpress/'),
+                false // Not hidden in schema
+            ),
+            array(
+                'Website templates',
+                home_url('/wordpress/website-templates/'),
+                false // Not hidden in schema
+            )
+        );
+
+        // Add category hierarchy
+        $category_hierarchy = array();
+        $current_category = $category;
+        while ($current_category->parent != 0) {
+            array_unshift($category_hierarchy, $current_category);
+            $current_category = get_term($current_category->parent, 'category');
+        }
+        array_unshift($category_hierarchy, $current_category);
+
+        foreach ($category_hierarchy as $cat) {
+            $new_items[] = array(
+                $cat->name,
+                get_term_link($cat),
                 false // Not hidden in schema
             );
         }
