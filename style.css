@@ -1002,3 +1002,17 @@ body.archive .MBP-container .maxi-row-block .maxi-column-block .maxi-group-block
 	content: ",";
 	color: rgb(155, 155, 155);
 }
+
+body.maxi-blocks--active.single .maxi-dark .maxi-block--use-sc.entry-content p a {
+	font-size: inherit;
+	font-weight: inherit;
+	font-style: inherit;
+	line-height: inherit;
+	-webkit-text-decoration: inherit;
+	text-decoration: inherit;
+	text-transform: inherit;
+	letter-spacing: inherit;
+	white-space: inherit;
+	word-spacing: inherit;
+	text-indent: inherit;
+}
